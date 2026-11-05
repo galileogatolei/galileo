@@ -503,6 +503,9 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
 :root.calma .hero::after{animation:none}
 :root.calma .rv{opacity:1;transform:none}
 /* ================= V5 ================= */
+.visitas[hidden]{display:none}
+.visitas{display:inline-flex;align-items:center;gap:.45rem;padding:.4rem .9rem;border-radius:999px;border:1px solid rgba(92,225,255,.3);background:rgba(92,225,255,.06);color:var(--on-dark-muted);font-size:.92rem}
+.visitas b{color:var(--cyan);font-family:var(--display)}
 @media (max-width:1300px){
   .menu-btn{display:inline-block}
   .nav{position:absolute;top:calc(100% + .5rem);left:1.25rem;right:1.25rem;flex-direction:column;background:rgba(8,9,34,.97);border:1px solid rgba(170,165,255,.18);border-radius:var(--r-l);padding:.6rem;display:none}
@@ -1201,6 +1204,7 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
 <footer>
   <div class="wrap">
     <span>© <span id="year"></span> Galileo Gatolei, Daniela Palma</span>
+    <span class="visitas" id="visitas" hidden><i class="fa-solid fa-eye" aria-hidden="true"></i> <b id="visitasN"></b> <span id="visitasT">visitantes</span></span>
     <span style="display:flex;gap:.6rem"><a class="ig-btn" href="https://www.instagram.com/galileogatolei/" target="_blank" rel="noopener" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a><a class="ig-btn" style="background:#25D366" href="#" data-wa="Hola Daniela, quiero consultar por clases." aria-label="WhatsApp"><i class="fa-brands fa-whatsapp"></i></a></span>
   </div>
 </footer>
@@ -1315,8 +1319,22 @@ const store = {get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JS
 $("#year").textContent = new Date().getFullYear();
 
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove("show"),3500)}
+/* Mensajes de WhatsApp con formato de tarjeta (negritas, cursivas y emojis compatibles) */
+const LINEA_WA="━━━━━━━━━━━━━━━";
+function pieWA(){const f=new Date().toLocaleString("es-AR",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"});return `${LINEA_WA}\n🕒 ${f}\n🔭 _Enviado desde la web de Galileo Gatolei_`}
+function tarjetaWA(icono,titulo,filas=[],mensaje="",rotulo="Mensaje"){
+  let t=`👋 *¡Hola Daniela!*\n\n${icono} *${titulo}*\n${LINEA_WA}\n`;
+  filas.filter(f=>f&&f[2]!==undefined&&f[2]!==null&&String(f[2]).trim()!=="").forEach(([e,k,v])=>{t+=`${e} *${k}:* ${String(v).trim()}\n`});
+  if(mensaje&&mensaje.trim())t+=`\n💬 *${rotulo}:*\n${mensaje.trim()}\n`;
+  return t+pieWA();
+}
 function abrirWhatsApp(msg){
   if(!WHATSAPP){toast("El número de WhatsApp todavía no está configurado.");return}
+  if(/^Hola Daniela,\s*/.test(msg)){            /* mensajes cortos de los botones: se arman como tarjeta */
+    let c=msg.replace(/^Hola Daniela,\s*/,"");c=c.charAt(0).toUpperCase()+c.slice(1);
+    msg=`👋 *¡Hola Daniela!*\n\n📩 ${c}\n\n${pieWA()}`;
+  }
+  msg=msg.replace(/🕒 .*/,"🕒 "+new Date().toLocaleString("es-AR",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}));  /* fecha y hora del momento del envío */
   window.open("https://wa.me/"+WHATSAPP+"?text="+encodeURIComponent(msg),"_blank","noopener");
 }
 document.addEventListener("click",e=>{const el=e.target.closest("[data-wa]");if(el){e.preventDefault();abrirWhatsApp(el.dataset.wa)}});
@@ -1472,7 +1490,7 @@ $("#plans").innerHTML=PLANES.map(p=>{
     <p>${esc(p.detalle)}</p>
     ${p.incluye.length?`<ul>${p.incluye.map(i=>`<li>${esc(i)}</li>`).join("")}</ul>`:""}
     <div class="acts">
-      <button class="btn btn-primary" data-wa="${esc(`Hola Daniela, quiero inscribirme en ${nombre} (${pesos(p.precio)}).`)}">Quiero inscribirme</button>
+      <button class="btn btn-primary" data-wa="${esc(tarjetaWA("🎓","Inscripción: "+nombre,[["💲","Precio",pesos(p.precio)+(p.antes?" (antes "+pesos(p.antes)+")":"")],["✅","Incluye",p.incluye.join(", ")],["👤","Mi nombre","(completar)"],["📅","Disponibilidad horaria","(completar)"]]))}">Quiero inscribirme</button>
       ${link?`<a class="btn btn-ghost" href="${esc(link)}" target="_blank" rel="noopener">Pagar</a>`:""}
     </div>
   </article>`}).join("");
@@ -1524,7 +1542,7 @@ function pintarApuntes(){
   $("#nGrid").innerHTML=lista.length?lista.map(a=>{
     const acc=a.tipo==="gratis"
       ?(a.url?`<a class="btn btn-primary btn-sm" href="${esc(a.url)}" target="_blank" rel="noopener">Descargar gratis</a>`:`<button class="btn btn-ghost btn-sm" disabled>Próximamente</button>`)
-      :(()=>{const link=a.linkPago||PAGOS.mercadoPago;const wa=`<button class="btn ${link?"btn-ghost":"btn-primary"} btn-sm" data-wa="${esc(`Hola Daniela, quiero el apunte “${a.titulo}” de ${a.materia}.`)}">${link?"Consultar":"Pedir por WhatsApp"}</button>`;
+      :(()=>{const link=a.linkPago||PAGOS.mercadoPago;const wa=`<button class="btn ${link?"btn-ghost":"btn-primary"} btn-sm" data-wa="${esc(tarjetaWA("📘","Pedido de apunte",[["📄","Apunte",a.titulo],["📚","Materia",a.materia],["💲","Precio",a.precio||""]]))}">${link?"Consultar":"Pedir por WhatsApp"}</button>`;
         return `<div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:auto">${link?`<a class="btn btn-primary btn-sm" href="${esc(link)}" target="_blank" rel="noopener">Comprar</a>`:""}${wa}</div>`})();
     return `<article class="ncard panel"><div class="row"><span>${esc(a.materia)}</span><span class="badge ${a.tipo}">${a.tipo==="gratis"?"Gratis":(a.precio?esc(a.precio):"Pago")}</span></div>
       <h3 style="margin:0">${esc(a.titulo)}</h3><p>${esc(a.desc)}</p>${acc}</article>`}).join("")
@@ -1551,9 +1569,9 @@ if(PAGOS.mercadoPago){$("#mpBtn").href=PAGOS.mercadoPago}else{$("#payMP").style.
 /* Formularios */
 function validar(form){let ok=true;form.querySelectorAll("[required]").forEach(f=>{const err=f.parentElement.querySelector(".ferr"),v=!f.value.trim();if(err)err.textContent=v?"Completá este campo.":"";f.setAttribute("aria-invalid",v);if(v&&ok){f.focus();ok=false}});return ok}
 $("#customForm").addEventListener("submit",e=>{e.preventDefault();const f=e.target;if(!validar(f))return;const d=Object.fromEntries(new FormData(f));
-  abrirWhatsApp(`Hola Daniela, soy ${d.nombre}. Quiero un apunte personalizado de ${d.materia}.`+(d.para?`\nLo necesito para: ${d.para}.`:"")+`\nTemas que me cuestan: ${d.temas}`)});
+  abrirWhatsApp(tarjetaWA("📝","Pedido de apunte personalizado",[["👤","Nombre",d.nombre],["📚","Materia",d.materia],["🎯","Lo necesito para",d.para]],d.temas,"Temas que me cuestan"))});
 $("#contactForm").addEventListener("submit",e=>{e.preventDefault();const f=e.target;if(!validar(f))return;const d=Object.fromEntries(new FormData(f));
-  abrirWhatsApp(`Hola Daniela, soy ${d.nombre}. Consulto por clases de ${d.materia}, nivel ${d.tipo.toLowerCase()}. Las clases son para: ${d.quien.toLowerCase()}.`+(d.mensaje?`\n${d.mensaje}`:""))});
+  abrirWhatsApp(tarjetaWA("📩","Nueva consulta desde la web",[["👤","Nombre",d.nombre],["🎓","Nivel",d.tipo],["📚","Materia",d.materia],["🙋","Clases para",d.quien]],d.mensaje))});
 
 /* ================= V4: LABORATORIO Y EFECTOS ================= */
 const num=(v,d=2)=>(Math.abs(v)<1e-9?0:Number(v)).toLocaleString("es-AR",{maximumFractionDigits:d});
@@ -1952,7 +1970,7 @@ calcCuad();calcSis();
     {k:/presencial|virtual|online|zoom|modalidad|d[oó]nde|direcci|ubicaci|grupo|individual/,r:()=>[`Las clases son presenciales, individuales o en grupos reducidos. Aunque sea en grupo, a cada alumno se le explica a su manera. Los videos de la página sirven para repasar en casa.`,[WA("Hola Daniela, quiero consultar por la modalidad de las clases.","Consultar")]]},
     {k:/tea|autis|tdah|atenci[oó]n|discapac|neurodiver|asperger/,r:()=>[`Sí, trabajo especialmente con estudiantes autistas y con déficit de atención. Adapto el ritmo, los ejemplos y el material a cada uno.`,[IR("#inc-t","Leer más"),WA("Hola Daniela, quiero consultar por clases adaptadas.","Consultar")]]},
     {k:/inscrib|anotar|empezar|comenzar|reservar|clase de prueba/,r:()=>[`¡Genial! Para inscribirte, escribile a Daniela por WhatsApp y te cuenta cómo seguir.`,[WA("Hola Daniela, quiero inscribirme a las clases.","Inscribirme")]]},
-    {k:/pag|mercado|transfer|alias|cbu|tarjeta/,r:()=>[`Podés pagar por Mercado Pago o transferencia. Después mandá el comprobante por WhatsApp.`,[IR("#pagos","Ver formas de pago"),WA("Hola Daniela, te envío el comprobante de pago.","Enviar comprobante")]]},
+    {k:/pag|mercado|transfer|alias|cbu|tarjeta/,r:()=>[`Podés pagar por Mercado Pago o transferencia. Después mandá el comprobante por WhatsApp.`,[IR("#pagos","Ver formas de pago"),WA(MSG_COMPROBANTE,"Enviar comprobante")]]},
     {k:/apunte|resumen|gu[ií]a|material|pdf|examen modelo|simulacro/,r:()=>[`Hay apuntes gratis y pagos, y también armo apuntes personalizados para lo que estés estudiando.`,[IR("#apuntes","Ver apuntes")]]},
     {k:/video|youtube|clase grabada/,r:()=>[`En la sección de videos hay dos carruseles: uno para alumnos del instituto y otro para clases particulares.`,[IR("#videos","Ver videos")]]},
     {k:/calculadora|graficar|gr[aá]fico|funci[oó]n|logaritmo|tabla peri[oó]dica|masa molar|herramienta/,r:()=>[`En Herramientas tenés calculadora común y científica, graficador de funciones, logaritmos, ecuaciones y tabla periódica con calculadora de masa molar.`,[IR("#herramientas","Abrir herramientas")]]},
@@ -1972,8 +1990,8 @@ calcCuad();calcSis();
   function responder(texto){
     const t=norm(texto);
     let r=R.find(x=>x.k.test(t));
-    if(/daniela|hablar|humano|persona|whats/.test(t))r={r:()=>[`Te paso con Daniela. Tocá el botón y se abre WhatsApp con tu mensaje.`,[WA(ultimo&&!/hablar con daniela/i.test(ultimo)?`Hola Daniela, ${ultimo}`:"Hola Daniela, quiero hacerte una consulta.","Abrir WhatsApp")]]};
-    const [h,a]=r?r.r():[`No tengo esa respuesta, pero Daniela sí. ¿Le mando tu consulta por WhatsApp?`,[WA("Hola Daniela, "+texto,"Enviar a Daniela")]];
+    if(/daniela|hablar|humano|persona|whats/.test(t))r={r:()=>[`Te paso con Daniela. Tocá el botón y se abre WhatsApp con tu mensaje.`,[WA(ultimo&&!/hablar con daniela/i.test(ultimo)?tarjetaWA("💬","Consulta desde el chat de la web",[],ultimo,"Consulta"):"Hola Daniela, quiero hacerte una consulta.","Abrir WhatsApp")]]};
+    const [h,a]=r?r.r():[`No tengo esa respuesta, pero Daniela sí. ¿Le mando tu consulta por WhatsApp?`,[WA(tarjetaWA("💬","Consulta desde el chat de la web",[],texto,"Consulta"),"Enviar a Daniela")]];
     const tp=document.createElement("div");tp.className="msg bot typing";tp.innerHTML="<span></span><span></span><span></span>";msgs.appendChild(tp);msgs.scrollTop=msgs.scrollHeight;
     setTimeout(()=>{tp.remove();burbuja(h,"bot",a)},quieto()?150:650);
   }
@@ -1991,6 +2009,38 @@ calcCuad();calcSis();
 
 /* Aviso del Modo calma en pantallas táctiles */
 $("#calmaBtn").addEventListener("click",()=>{const on=document.documentElement.classList.contains("calma");toast(on?"Modo calma activado: sin animaciones y letra más grande.":"Modo calma desactivado.")});
+
+/* ================= CONTADOR DE VISITANTES ÚNICOS (privado) =================
+   Cada persona se cuenta UNA sola vez según su conexión (IP), del lado del servidor:
+   borrar cookies o historial no suma de nuevo. La IP no se guarda, solo un código cifrado.
+   CONTADOR.url: dirección del Worker de Cloudflare (ver contador-visitas/LEEME.txt).
+   Para ver el total: entrar con #visitas al final de la dirección (solo lo ve el dueño).
+   Para volver a ver la página como visitante: entrar con #publico. */
+const CONTADOR = { url: "" };   // ej.: "https://galileo-visitas.TU-USUARIO.workers.dev"
+(async function(){
+  if(!CONTADOR.url)return;
+  const base=CONTADOR.url.replace(/\/+$/,"");
+  const ls={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{v===null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}}};
+  let ruta="/contar";
+  if(location.hash==="#visitas"){ls.set("gg-duenio","1");ruta="/duenio";history.replaceState(null,"",location.pathname+location.search)}
+  if(location.hash==="#publico"){ls.set("gg-duenio",null);history.replaceState(null,"",location.pathname+location.search);toast("Ahora ves la página como un visitante común.")}
+  const duenio=ls.get("gg-duenio")==="1";
+  if(duenio&&ruta!=="/duenio")ruta="/ver";
+  try{
+    const r=await fetch(base+ruta,{cache:"no-store"});if(!r.ok)throw Error(r.status);
+    const n=Number((await r.json()).total);if(!isFinite(n))throw Error("sin dato");
+    if(duenio){
+      $("#visitasN").textContent=n.toLocaleString("es-AR");
+      $("#visitasT").textContent=(n===1?"visitante único":"visitantes únicos")+" (solo lo ves vos)";
+      $("#visitas").hidden=false;
+      toast(`Panel del dueño: ${n.toLocaleString("es-AR")} ${n===1?"visitante único":"visitantes únicos"}.`);
+    }
+  }catch(e){if(duenio)toast("No se pudo leer el contador de visitas en este momento.")}
+})();
+
+/* Comprobante de pago con tarjeta para completar */
+const MSG_COMPROBANTE=tarjetaWA("🧾","Comprobante de pago",[["📎","Adjunto","la captura del pago"],["📌","Corresponde a","(clase, mes o apunte)"],["👤","Nombre del alumno","(completar)"]]);
+$$('[data-wa^="Hola Daniela, te envío el comprobante"]').forEach(b=>b.dataset.wa=MSG_COMPROBANTE);
 </script>
 </body>
 </html>
