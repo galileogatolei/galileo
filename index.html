@@ -1335,7 +1335,8 @@ function abrirWhatsApp(msg){
     msg=`👋 *¡Hola Daniela!*\n\n📩 ${c}\n\n${pieWA()}`;
   }
   msg=msg.replace(/🕒 .*/,"🕒 "+new Date().toLocaleString("es-AR",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}));  /* fecha y hora del momento del envío */
-  window.open("https://wa.me/"+WHATSAPP+"?text="+encodeURIComponent(msg),"_blank","noopener");
+  /* Se usa api.whatsapp.com/send y no wa.me: la redirección de wa.me rompe los emojis (se ven como �) */
+  window.open("https://api.whatsapp.com/send?phone="+WHATSAPP+"&text="+encodeURIComponent(msg),"_blank","noopener");
 }
 document.addEventListener("click",e=>{const el=e.target.closest("[data-wa]");if(el){e.preventDefault();abrirWhatsApp(el.dataset.wa)}});
 
